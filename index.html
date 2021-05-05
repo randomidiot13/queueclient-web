@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>QueueClientWeb</title>
+    <script type="text/javascript">
+      const HEADER = "https://www.speedrun.com/api/v1/";
+
+      function json_from_url(url, xhr) {
+        xhr.open("GET", url, false);
+        xhr.send();
+        return JSON.parse(xhr.responseText);
+      }
+
+      function json_from_src(short_url, xhr) {
+        return json_from_url(HEADER + short_url, xhr);
+      }
+
+      function continual_data(short_url, xhr) {
+        let hold = [];
+        let resp = json_from_src(short_url + (short_url.includes("?") ? "&max=200" : "?max=200"), xhr);
+        while (true) {
+          hold.push(...resp.data);
+          if (!("pagination" in resp) || (resp.pagination.size < 200))
+            break;
+          let linkMap = resp.pagination.links.reduce((newObj, x) => ({...newObj, [x.rel]: x.uri}), {});
+          resp = json_from_url(linkMap.next, xhr);
+        }
+        return hold;
+      }
+
+      function get_queue() {
+        let xhr = new XMLHttpRequest();
+        let abbr = document.getElementById("abbreviation").value;
+        let gameObj = json_from_src(`games/${abbr}`, xhr);
+        if (gameObj.status >= 400 && gameObj.status < 500) {
+          document.getElementById("category-error").innerHTML = `Invalid game: ${abbr.replace("<", "&lt;").replace(">", "&gt;")}`;
+          document.getElementById("game-title").innerHTML = "";
+          document.getElementById("queue-table").innerHTML = "";
+          return;
+        } else if (gameObj.status >= 500) {
+          document.getElementById("category-error").innerHTML = "Speedrun.com server error";
+          document.getElementById("game-title").innerHTML = "";
+          document.getElementById("queue-table").innerHTML = "";
+          return;
+        }
+        gameID = gameObj.data.id;
+        gameName = gameObj.data.names.international;
+        queue = continual_data(`runs?game=${gameID}&status=new&embed=category,level,players&orderby=submitted`, xhr);
+        queue.sort((a, b) => ((a.date != b.date) ? ((a.date > b.date) - 0.5) : 0));
+        working_queue = queue;
+        let varObj = json_from_src(`games/${gameID}/variables`, xhr);
+        var_map = {};
+        subcat_map = {};
+        for (let variable of varObj.data) {
+          var_map[variable.id] = variable.name;
+          for (let value in variable.values.values) {
+            var_map[value] = variable.values.values[value].label;
+            if (variable["is-subcategory"])
+              subcat_map[value] = variable.values.values[value].label;
+          }
+        }
+        let all_cats = [];
+        for (let run of queue) {
+          let full_cat = full_category(run);
+          if (!all_cats.includes(full_cat))
+            all_cats.push(full_cat);
+        }
+        all_cats.sort((a, b) => ((a > b) - 0.5));
+        all_cats.unshift("All Categories");
+        let cat_select = '<select name="category-select" id="category-select">';
+        for (let cat of all_cats)
+          cat_select += `<option value="${cat}">${cat}</option>`;
+        cat_select += '</select> <button onclick="edit_working_queue()">Apply</button>';
+        document.getElementById("category-error").innerHTML = cat_select;
+        edit_working_queue();
+      }
+
+      function full_category(run) {
+        let subcatvals = [];
+        for (let value of Object.values(run.values)) {
+          if (value in subcat_map)
+            subcatvals.push(subcat_map[value]);
+        }
+        let main;
+        if (run.level.data.length === 0)
+          main = run.category.data.name;
+        else {
+          main = run.level.data.name;
+          subcatvals.unshift(run.category.data.name);
+        }
+        return ((subcatvals.length > 0) ? `${main} - ${subcatvals.join(", ")}` : main);
+      }
+
+      function players(run) {
+        let hold = [];
+        for (let player of run.players.data)
+          hold.push((player.rel == "user") ? player.names.international : player.name);
+        return hold;
+      }
+
+      function str_time(time) {
+        let milli = Math.round(time * 1000);
+        let hours = (Math.floor(milli / 3600000)).toString();
+        let minutes = (Math.floor((milli % 3600000) / 60000)).toString();
+        let seconds = (Math.floor((milli % 60000) / 1000)).toString();
+        let milliseconds = (milli % 1000).toString();
+        if (hours != "0") {
+          if (milliseconds != "0")
+            return `${hours}:${minutes.padStart(2, "0")}:${seconds.padStart(2, "0")}.${milliseconds.padStart(3, "0")}`;
+          else
+            return `${hours}:${minutes.padStart(2, "0")}:${seconds.padStart(2, "0")}`
+        } else if (minutes != "0") {
+          if (milliseconds != "0")
+            return `${minutes}:${seconds.padStart(2, "0")}.${milliseconds.padStart(3, "0")}`;
+          else
+            return `${minutes}:${seconds.padStart(2, "0")}`;
+        } else if (seconds != "0") {
+          if (milliseconds != "0")
+            return `${seconds}:${milliseconds.padStart(3, "0")}`;
+          else
+            return `0:${seconds.padStart(2, "0")}`;
+        } else
+          return `0.${milliseconds.padStart(3, "0")}`;
+      }
+
+      function primary_time(run) {
+        return str_time(run.times.primary_t);
+      }
+
+      function edit_working_queue() {
+        selected = document.getElementById("category-select").value;
+        let title;
+        if (selected == "All Categories") {
+          working_queue = queue
+          title = `<b>${gameName}\n${working_queue.length} run${(working_queue.length != 1) ? "s" : ""}</b>`;
+        } else {
+          working_queue = []; 
+          for (let run of queue) {
+            if (full_category(run) == selected)
+              working_queue.push(run);
+          }
+          title = `<b>${gameName}\n${selected}\n${working_queue.length} run${(working_queue.length != 1) ? "s" : ""}</b>`;
+        }
+        let output = "";
+        for (let run of working_queue) {
+          output += `<tr><td style="text-align:center">${full_category(run)}</td><td></td>` +
+                    `<td style="white-space:pre;text-align:center">${players(run).join("\n")}</td><td></td>` +
+                    `<td style="text-align:center">${primary_time(run)}</td><td></td>` +
+                    `<td style="text-align:center">${run.date}</td><td></td>` +
+                    `<td style="text-align:center"><a href="${run.weblink}" target="_blank">Open</a></tr><tr></tr>`;
+        }
+        document.getElementById("game-title").innerHTML = title;
+        document.getElementById("queue-table").innerHTML = output;
+      }
+    </script>
+  </head>
+  <body>
+    <div>
+      <h1>QueueClient</h1>
+      <p>Enter a game abbreviation to fetch the queue from.</p>
+      <p>
+        <input type="text" name="abbreviation" id="abbreviation" placeholder="mc"/>
+        <button onclick="get_queue()">Fetch Queue</button>
+      </p>
+      <div>
+        <p id="category-error"></p>
+        <p style="white-space:pre" id="game-title"></p>
+        <table id="queue-table"></table>
+      </div>
+     </div>
+  </body>
+</html>
