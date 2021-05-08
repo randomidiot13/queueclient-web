@@ -119,7 +119,7 @@
           if (milliseconds != "0")
             return `${seconds}.${milliseconds.padStart(3, "0")}`;
           else
-            return `0.${seconds.padStart(2, "0")}`;
+            return `0:${seconds.padStart(2, "0")}`;
         } else
           return `0.${milliseconds.padStart(3, "0")}`;
       }
