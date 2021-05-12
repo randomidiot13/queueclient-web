@@ -133,15 +133,22 @@
         let title;
         if (selected == "All Categories") {
           working_queue = queue
-          title = `<b>${gameName}\n${working_queue.length} run${(working_queue.length != 1) ? "s" : ""}</b>`;
+          title = `<b>${gameName}\n${working_queue.length} run${(working_queue.length != 1) ? "s" : ""}`;
         } else {
           working_queue = []; 
           for (let run of queue) {
             if (full_category(run) == selected)
               working_queue.push(run);
           }
-          title = `<b>${gameName}\n${selected}\n${working_queue.length} run${(working_queue.length != 1) ? "s" : ""}</b>`;
+          title = `<b>${gameName}\n${selected}\n${working_queue.length} run${(working_queue.length != 1) ? "s" : ""}`;
         }
+        if (working_queue.length > 0) {
+          let total = 0;
+          for (let run of working_queue)
+            total += run.times.primary_t;
+          title += `\nTotal time ${str_time(total)}, average ${str_time(total / working_queue.length)}`;
+        }
+        title += "</b>";
         let output = "";
         for (let run of working_queue) {
           output += `<tr><td style="text-align:center">${full_category(run)}</td><td></td>` +
