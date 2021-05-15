@@ -3,6 +3,12 @@
   <head>
     <meta charset="utf-8">
     <title>QueueClientWeb</title>
+    <style>
+      mark {
+        background-color: yellow;
+        color: black;
+      }
+    </style>
     <script type="text/javascript">
       const HEADER = "https://www.speedrun.com/api/v1/";
 
@@ -27,6 +33,24 @@
           resp = json_from_url(linkMap.next, xhr);
         }
         return hold;
+      }
+
+      function default_flag(run) {
+        return "";
+      }
+
+      function celeste_flag(run) {
+        let milli = Math.round(run.times.primary_t * 1000);
+        return (milli % 17 != 0) ? `<div title="Time is not a multiple of 0.017"><mark>F</mark></div>` : "";
+      }
+
+      const fMap = {"o1y9j9v6": [celeste_flag, "time is not a multiple of 0.017"]};
+
+      function get_flag() {
+        if (gameID in fMap)
+          return fMap[gameID][0];
+        else
+          return default_flag;
       }
 
       function get_queue() {
@@ -149,13 +173,17 @@
           title += `\nTotal time ${str_time(total)}, average ${str_time(total / working_queue.length)}`;
         }
         title += "</b>";
+        if (gameID in fMap)
+          title += `\nThis game supports flagging. Runs will be flagged if: ${fMap[gameID][1]}`;
+        let flag_func = get_flag();
         let output = "";
         for (let run of working_queue) {
           output += `<tr><td style="text-align:center">${full_category(run)}</td><td></td>` +
                     `<td style="white-space:pre;text-align:center">${players(run).join("\n")}</td><td></td>` +
                     `<td style="text-align:center">${primary_time(run)}</td><td></td>` +
                     `<td style="text-align:center">${run.date}</td><td></td>` +
-                    `<td style="text-align:center"><a href="${run.weblink}" target="_blank">Open</a></tr><tr></tr>`;
+                    `<td style="text-align:center"><a href="${run.weblink}" target="_blank">Open</a></td>` +
+                    `<td id="flag-${run.id}">${flag_func(run)}</td></tr><tr></tr>`;
         }
         document.getElementById("game-title").innerHTML = title;
         document.getElementById("queue-table").innerHTML = output;
