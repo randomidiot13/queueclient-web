@@ -44,7 +44,103 @@
         return (milli % 17 != 0) ? `<div title="Time is not a multiple of 0.017"><mark>F</mark></div>` : "";
       }
 
-      const fMap = {"o1y9j9v6": [celeste_flag, "time is not a multiple of 0.017"]};
+      function mc_mcce_flag(run) {
+        const ranges = {"mkeyl926": ["wl33kewl", {"gq7zo9p1": [0, 8], // Any% Glitchless
+                                                  "21go6e6q": [9, 16],
+                                                  "4qye4731": [16, Infinity]}],
+                        "wkpn0vdr": ["wlexoyr8", {"jqzywv2l": [0, 8], // Any%
+                                                  "81pjwxn1": [9, 13],
+                                                  "klr6djol": [14, Infinity]}],
+                        "wk63eek1": ["0nw2y7xn", {"jqz6p0m1": [0, 6], // All Achievements
+                                                  "klrzp521": [8, 11]}],
+                        "xk9gz16d": ["789je4qn", {"81pd4881": [12, 12], // All Advancements
+                                                  "xqkm97kl": [13, 13],
+                                                  "gq7r9kdl": [14, 14],
+                                                  "81p687gq": [15, 15],
+                                                  "klrw35m1": [16, 16]}],
+                        "zd301qed": ["68kd9yql", {"21go6emq": [0, 8], // Any% RSG Co-op
+                                                  "jqzywvml": [9, 15],
+                                                  "rqvojn6l": [16, Infinity]}],
+                        "9d86nz62": ["ylqmmrvn", {"rqv3j6rl": [0, 8], // Any% Glitchless Peaceful
+                                                  "5ledp3m1": [9, Infinity]}],
+                        "xd1qp728": ["gnxvv7gl", {"0q5kdx7q": [0, 8], // Any% Peaceful
+                                                  "4lx3m03l": [9, Infinity]}],
+                        "7kj6qvn2": ["wl30d66l", {"4lxw0e41": [0, 8], // Any% Glitchless Demo
+                                                  "814ek7vl": [9, 15],
+                                                  "z19g588l": [16, Infinity]}],
+                        "xd114pzd": ["wl314d98", {"zqo0omgq": [16, 16]}], // All Advancements Co-op
+                        "7kj1wexk": ["68k4pjkl", {"mlnrk80q": [0, 8], // Kill Bosses
+                                                  "gq70v5dl": [9, 15],
+                                                  "81039vw1": [16, Infinity]}],
+                        "xk987oy2": [null, [12, Infinity]], // How Did We Get Here?
+                        "q25gyyyd": [null, [14, Infinity]], // Hero of the Village
+                        "jdrlexgd": [null, [14, Infinity]], // Arbalistic
+                        "7dg4popd": ["dloyre58", {"jq6k96nl": [0, 15], // All Swords
+                                                  "5lmjr0yl": [16, Infinity]}],
+                        "mkeqm06k": ["kn0jv3zl", {"5leor7zq": [0, 1], // All Wood Logs
+                                                  "0q56njn1": [2, 6],
+                                                  "z19gj0jl": [7, 15],
+                                                  "p12e6gv1": [16, Infinity]}],
+                        "5dw7zllk": ["kn0mkqzl", {"p12n2rk1": [0, 13], // All Wool
+                                                  "81pjxvk1": [14, Infinity]}],
+                        "ndx9ezod": ["9l77rgzl", {"013eonkq": [5, 15], // All Minerals
+                                                  "rqvwk551": [16, Infinity]}],
+                        "5dwg0znk": [null, [14, Infinity]], // All Workstations
+                        "w20x6982": [null, null, "15w14a"], // 15w14a
+                        "rkl3gqnk": [null, null, "20w14∞"], // 20w14∞
+                        "n2y9z41d": ["jlzrovq8", {"mlnp8rd1": [16, 16]}], // Filtered Seed Glitchless
+                        "xd148xrd": ["p85r42xn", {"4qyd3p6q": [16, 16]}]}; // Half%
+        let isMC = (run.game == "j1npme6p");
+        let versionVar = (isMC ? "jlzkwql2" : "j846z5wl");
+        if (!(versionVar in run.values))
+          return `<div title="Version is blank"><mark>F</mark></div>`;
+        let versionStr = var_map[run.values[versionVar]];
+        let isVersion = /^((1\.\d\d?(\.\d\d?)?)|(15w14a)|(20w14∞))$/;
+        if (!isVersion.test(versionStr))
+          return `<div title="Version does not match pattern"><mark>F</mark></div>`;
+        let isSpecial;
+        if (versionStr.includes(".")) {
+          isSpecial = false;
+          let splitVersion = versionStr.split(".");
+          var major = parseInt(splitVersion[1]);
+        } else
+          isSpecial = true;
+        if (!(run.category.data.id in ranges))
+          return "";
+        let versionRangeVar = ranges[run.category.data.id];
+        if (versionRangeVar[0] === null) {
+          if (versionRangeVar[1] === null)
+            return (versionStr == versionRangeVar[2]) ? "" : `<div title="Version is not ${versionRangeVar[2]}"><mark>F</mark></div>`;
+          let reqRange = versionRangeVar[1];
+          if (isSpecial)
+            return `<div title="Version is not a full release"><mark>F</mark></div>`;
+          if (major >= reqRange[0] && major <= reqRange[1])
+            return "";
+          if (reqRange[1] === Infinity)
+            return `<div title="Version is not 1.${reqRange[0]} or above"><mark>F</mark></div>`;
+          else
+            return `<div title="Version is not between 1.${reqRange[0]} and 1.${reqRange[1]}"><mark>F</mark></div>`;
+        } else {
+          if (!(versionRangeVar[0] in run.values))
+            return "";
+          let subcatVersion = run.values[versionRangeVar[0]];
+          if (!(subcatVersion in versionRangeVar[1]))
+            return "";
+          let reqRange = versionRangeVar[1][subcatVersion];
+          if (isSpecial)
+            return `<div title="Version is not a full release"><mark>F</mark></div>`;
+          if (major >= reqRange[0] && major <= reqRange[1])
+            return "";
+          if (reqRange[1] === Infinity)
+            return `<div title="Version is not 1.${reqRange[0]} or above"><mark>F</mark></div>`;
+          else
+            return `<div title="Version is not between 1.${reqRange[0]} and 1.${reqRange[1]}"><mark>F</mark></div>`;
+        }
+      } 
+
+      const fMap = {"o1y9j9v6": [celeste_flag, "time is not a multiple of 0.017"],
+                    "j1npme6p": [mc_mcce_flag, "version is invalid in some way"],
+                    "nd2e9erd": [mc_mcce_flag, "version is invalid in some way"]};
 
       function get_flag() {
         if (gameID in fMap)
