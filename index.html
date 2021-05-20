@@ -154,7 +154,7 @@
         let abbr = document.getElementById("abbreviation").value;
         let gameObj = json_from_src(`games/${abbr}`, xhr);
         if (gameObj.status >= 400 && gameObj.status < 500) {
-          document.getElementById("category-error").innerHTML = `Invalid game: ${abbr.replace("<", "&lt;").replace(">", "&gt;")}`;
+          document.getElementById("category-error").innerHTML = `Invalid game: ${abbr.replaceAll("<", "&lt;").replaceAll(">", "&gt;")}`;
           document.getElementById("game-title").innerHTML = "";
           document.getElementById("queue-table").innerHTML = "";
           return;
