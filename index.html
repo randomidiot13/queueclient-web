@@ -30,7 +30,7 @@
           if (!("pagination" in resp) || (resp.pagination.size < 200))
             break;
           let linkMap = resp.pagination.links.reduce((newObj, x) => ({...newObj, [x.rel]: x.uri}), {});
-          resp = json_from_url(linkMap.next, xhr);
+          resp = json_from_url(linkMap.next.replace("http://", "https://"), xhr);
         }
         return hold;
       }
