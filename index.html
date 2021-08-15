@@ -278,7 +278,7 @@
                     `<td style="white-space:pre;text-align:center">${players(run).join("\n")}</td><td></td>` +
                     `<td style="text-align:center">${primary_time(run)}</td><td></td>` +
                     `<td style="text-align:center">${run.date}</td><td></td>` +
-                    `<td style="text-align:center"><a href="${run.weblink}" target="_blank">Open</a></td>` +
+                    `<td style="text-align:center"><a href="${run.weblink.replace("http://", "https://")}" target="_blank">Open</a></td>` +
                     `<td id="flag-${run.id}">${flag_func(run)}</td></tr><tr></tr>`;
         }
         document.getElementById("game-title").innerHTML = title;
