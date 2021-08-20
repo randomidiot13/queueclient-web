@@ -2,14 +2,80 @@
 <html lang="en">
   <head>
     <meta charset="utf-8">
-    <title>QueueClientWeb</title>
+    <title>QueueClient</title>
     <style>
-      mark {
+      body.light {
+        background: white;
+        color: black
+      }
+      body.dark {
+        background: #222;
+        color: #e6e6e6
+      }
+      button.dark, input.dark, select.dark {
+        background: #3b3b3b;
+        color: #e6e6e6
+      }
+      button.dark, input.dark {
+        border-width: 1px
+      }
+      .xlight.dark, .xdark.light {
+        display: none
+      }
+      a:link {
+        color: #08e
+      }
+      a:visited {
+        color: #af69ef
+      }
+      .external:after {
+        content: url(http://upload.wikimedia.org/wikipedia/commons/6/64/Icon_External_Link.png);
+        margin: 0 0 0 3px;
+      }
+      button.link {
+        background: none!important;
+        border: none!important;
+        padding: 0!important;
+        font-family: sans-serif;
+        font-size: medium;
+        color: #08e!important;
+        text-decoration: underline;
+        cursor: pointer
+      }
+      mark.light {
         background-color: yellow;
-        color: black;
+        color: black
+      }
+      mark.dark {
+        background-color: transparent;
+        color: yellow
       }
     </style>
     <script type="text/javascript">
+      mode = "light";
+
+      function light() {
+        let elements = [];
+        for (let x of document.getElementsByClassName("dark"))
+          elements.push(x);
+        for (let x of elements) {
+          x.classList.remove("dark");
+          x.classList.add("light");
+        }
+        mode = "light";
+      }
+
+      function dark() {
+        let elements = [];
+        for (let x of document.getElementsByClassName("light"))
+          elements.push(x);
+        for (let x of elements) {
+          x.classList.remove("light");
+          x.classList.add("dark");
+        }
+        mode = "dark";
+      }
+
       const HEADER = "https://www.speedrun.com/api/v1/";
 
       function json_from_url(url, xhr) {
@@ -41,7 +107,7 @@
 
       function celeste_flag(run) {
         let milli = Math.round(run.times.primary_t * 1000);
-        return (milli % 17 != 0) ? `<div title="Time is not a multiple of 0.017"><mark>F</mark></div>` : "";
+        return (milli % 17 != 0) ? `<div title="Time is not a multiple of 0.017"><mark class="${mode}">F</mark></div>` : "";
       }
 
       function mc_mcce_flag(run) {
@@ -93,11 +159,11 @@
         let isMC = (run.game == "j1npme6p");
         let versionVar = (isMC ? "jlzkwql2" : "j846z5wl");
         if (!(versionVar in run.values))
-          return `<div title="Version is blank"><mark>F</mark></div>`;
+          return `<div title="Version is blank"><mark class="${mode}">F</mark></div>`;
         let versionStr = var_map[run.values[versionVar]];
         let isVersion = /^((1\.\d\d?(\.\d\d?)?)|(15w14a)|(20w14∞))$/;
         if (!isVersion.test(versionStr))
-          return `<div title="Version does not match pattern"><mark>F</mark></div>`;
+          return `<div title="Version does not match pattern"><mark class="${mode}">F</mark></div>`;
         let isSpecial;
         if (versionStr.includes(".")) {
           isSpecial = false;
@@ -110,16 +176,16 @@
         let versionRangeVar = ranges[run.category.data.id];
         if (versionRangeVar[0] === null) {
           if (versionRangeVar[1] === null)
-            return (versionStr == versionRangeVar[2]) ? "" : `<div title="Version is not ${versionRangeVar[2]}"><mark>F</mark></div>`;
+            return (versionStr == versionRangeVar[2]) ? "" : `<div title="Version is not ${versionRangeVar[2]}"><mark class="${mode}">F</mark></div>`;
           let reqRange = versionRangeVar[1];
           if (isSpecial)
-            return `<div title="Version is not a full release"><mark>F</mark></div>`;
+            return `<div title="Version is not a full release"><mark class="${mode}">F</mark></div>`;
           if (major >= reqRange[0] && major <= reqRange[1])
             return "";
           if (reqRange[1] === Infinity)
-            return `<div title="Version is not 1.${reqRange[0]} or above"><mark>F</mark></div>`;
+            return `<div title="Version is not 1.${reqRange[0]} or above"><mark class="${mode}">F</mark></div>`;
           else
-            return `<div title="Version is not between 1.${reqRange[0]} and 1.${reqRange[1]}"><mark>F</mark></div>`;
+            return `<div title="Version is not between 1.${reqRange[0]} and 1.${reqRange[1]}"><mark class="${mode}">F</mark></div>`;
         } else {
           if (!(versionRangeVar[0] in run.values))
             return "";
@@ -128,13 +194,13 @@
             return "";
           let reqRange = versionRangeVar[1][subcatVersion];
           if (isSpecial)
-            return `<div title="Version is not a full release"><mark>F</mark></div>`;
+            return `<div title="Version is not a full release"><mark class="${mode}">F</mark></div>`;
           if (major >= reqRange[0] && major <= reqRange[1])
             return "";
           if (reqRange[1] === Infinity)
-            return `<div title="Version is not 1.${reqRange[0]} or above"><mark>F</mark></div>`;
+            return `<div title="Version is not 1.${reqRange[0]} or above"><mark class="${mode}">F</mark></div>`;
           else
-            return `<div title="Version is not between 1.${reqRange[0]} and 1.${reqRange[1]}"><mark>F</mark></div>`;
+            return `<div title="Version is not between 1.${reqRange[0]} and 1.${reqRange[1]}"><mark class="${mode}">F</mark></div>`;
         }
       } 
 
@@ -188,10 +254,10 @@
         }
         all_cats.sort((a, b) => ((a > b) - 0.5));
         all_cats.unshift("All Categories");
-        let cat_select = '<select name="category-select" id="category-select">';
+        let cat_select = `<select name="category-select" id="category-select" class="${mode}">`;
         for (let cat of all_cats)
           cat_select += `<option value="${cat}">${cat}</option>`;
-        cat_select += '</select> <button onclick="edit_working_queue()">Apply</button>';
+        cat_select += `</select> <button onclick="edit_working_queue()" class="${mode}">Apply</button>`;
         document.getElementById("category-error").innerHTML = cat_select;
         edit_working_queue();
       }
@@ -278,7 +344,7 @@
                     `<td style="white-space:pre;text-align:center">${players(run).join("\n")}</td><td></td>` +
                     `<td style="text-align:center">${primary_time(run)}</td><td></td>` +
                     `<td style="text-align:center">${run.date}</td><td></td>` +
-                    `<td style="text-align:center"><a href="${run.weblink.replace("http://", "https://")}" target="_blank">Open</a></td>` +
+                    `<td style="text-align:center"><a href="${run.weblink.replace("http://", "https://")}" target="_blank" class="external">Open</a></td>` +
                     `<td id="flag-${run.id}">${flag_func(run)}</td></tr><tr></tr>`;
         }
         document.getElementById("game-title").innerHTML = title;
@@ -286,24 +352,24 @@
       }
     </script>
   </head>
-  <body>
-    <div>
-      <h1>QueueClient</h1>
-      <p>Enter a game abbreviation to fetch the queue from.</p>
-      <p>
-        <input type="text" name="abbreviation" id="abbreviation" placeholder="mc"/>
-        <button onclick="get_queue()">Fetch Queue</button>
-      </p>
-      <div>
-        <p id="category-error"></p>
-        <p style="white-space:pre" id="game-title"></p>
-        <table id="queue-table"></table>
-      </div>
+  <body style="font-family:sans-serif" class="light">
+    <h1 style="text-align:center">QueueClient</h1>
+    <div id="header" style="text-align:center">
+      <span class="xlight light"><button class="link" onclick="dark()">Dark Mode</button></span>
+      <span class="xdark light"><button class="link" onclick="light()">Light Mode</button></span> &bull;
+      <a href="https://github.com/randomidiot13/queueclient-web" target="_blank" class="external">GitHub</a>
     </div>
-    <p>
-      <small>
-        Source code can be found <a href="https://github.com/randomidiot13/queueclient-web" target="_blank">here</a>.
-      </small>
-    </p>
+    <div id="prompt" style="text-align:center">
+      <p>Enter the abbreviation for the game you which to fetch the queue of:</p>
+      <p>
+        <input type="text" name="abbreviation" id="abbreviation" class="light" size="30"/>
+        <button onclick="get_queue()" class="light">Fetch Queue</button>
+      </p>
+    </div>
+    <div id="pre-table" style="text-align:center">
+      <p id="category-error"></p>
+      <p style="white-space:pre" id="game-title"></p>
+    </div>
+    <table id="queue-table" style="margin-left:auto;margin-right:auto"></table>
   </body>
 </html>
