@@ -81,6 +81,8 @@
       function json_from_url(url, xhr) {
         xhr.open("GET", url, false);
         xhr.send();
+        if (xhr.status >= 400)
+          throw xhr.status;
         return JSON.parse(xhr.responseText);
       }
 
@@ -215,27 +217,66 @@
           return default_flag;
       }
 
+      function disp_error(msg) {
+        document.getElementById("category-error").innerHTML = msg;
+        document.getElementById("game-title").innerHTML = "";
+        document.getElementById("queue-table").innerHTML = "";
+      }
+
       function get_queue() {
         let xhr = new XMLHttpRequest();
         let abbr = document.getElementById("abbreviation").value;
-        let gameObj = json_from_src(`games/${abbr}`, xhr);
-        if (gameObj.status >= 400 && gameObj.status < 500) {
-          document.getElementById("category-error").innerHTML = `Invalid game: ${abbr.replaceAll("<", "&lt;").replaceAll(">", "&gt;")}`;
-          document.getElementById("game-title").innerHTML = "";
-          document.getElementById("queue-table").innerHTML = "";
-          return;
-        } else if (gameObj.status >= 500) {
-          document.getElementById("category-error").innerHTML = "Speedrun.com server error";
-          document.getElementById("game-title").innerHTML = "";
-          document.getElementById("queue-table").innerHTML = "";
+        try {
+          var gameObj = json_from_src(`games/${abbr}`, xhr);
+        }
+        catch (code) {
+          let errorMsg;
+          if (code == 404) {
+            errorMsg = `Invalid game: ${abbr.replaceAll("<", "&lt;").replaceAll(">", "&gt;")}`;
+          } else if (code == 400) {
+            errorMsg = "Speedrun.com server error/pagination limit reached";
+          } else if (code > 400) {
+            errorMsg = "Speedrun.com server error";
+          } else {
+            errorMsg = "Unknown error";
+          }
+          disp_error(errorMsg);
           return;
         }
         gameID = gameObj.data.id;
         gameName = gameObj.data.names.international;
-        queue = continual_data(`runs?game=${gameID}&status=new&embed=category,level,players&orderby=submitted`, xhr);
+        try {
+          queue = continual_data(`runs?game=${gameID}&status=new&embed=category,level,players&orderby=submitted`, xhr);
+        }
+        catch (code) {
+          let errorMsg;
+          if (code == 400) {
+            errorMsg = "Speedrun.com server error/pagination limit reached";
+          } else if (code > 400) {
+            errorMsg = "Speedrun.com server error";
+          } else {
+            errorMsg = "Unknown error";
+          }
+          disp_error(errorMsg);
+          return;
+        }
         queue.sort((a, b) => ((a.date != b.date) ? ((a.date > b.date) - 0.5) : 0));
         working_queue = queue;
-        let varObj = json_from_src(`games/${gameID}/variables`, xhr);
+        try {
+          var varObj = json_from_src(`games/${gameID}/variables`, xhr);
+        }
+        catch (code) {
+          let errorMsg;
+          if (code == 400) {
+            errorMsg = "Speedrun.com server error/pagination limit reached";
+          } else if (code > 400) {
+            errorMsg = "Speedrun.com server error";
+          } else {
+            errorMsg = "Unknown error";
+          }
+          disp_error(errorMsg);
+          return;
+        }          
         var_map = {};
         subcat_map = {};
         for (let variable of varObj.data) {
