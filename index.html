@@ -29,8 +29,8 @@
         color: #af69ef
       }
       .external:after {
-        content: url(http://upload.wikimedia.org/wikipedia/commons/6/64/Icon_External_Link.png);
-        margin: 0 0 0 3px;
+        content: url(https://upload.wikimedia.org/wikipedia/commons/6/64/Icon_External_Link.png);
+        margin: 0 0 0 3px
       }
       button.link {
         background: none!important;
@@ -233,10 +233,8 @@
           let errorMsg;
           if (code == 404) {
             errorMsg = `Invalid game: ${abbr.replaceAll("<", "&lt;").replaceAll(">", "&gt;")}`;
-          } else if (code == 400) {
-            errorMsg = "Speedrun.com server error/pagination limit reached";
-          } else if (code > 400) {
-            errorMsg = "Speedrun.com server error";
+          } else if (code >= 400) {
+            errorMsg = `Speedrun.com server error (${code})`;
           } else {
             errorMsg = "Unknown error";
           }
@@ -250,10 +248,8 @@
         }
         catch (code) {
           let errorMsg;
-          if (code == 400) {
-            errorMsg = "Speedrun.com server error/pagination limit reached";
-          } else if (code > 400) {
-            errorMsg = "Speedrun.com server error";
+          if (code >= 400) {
+            errorMsg = `Speedrun.com server error (${code})`;
           } else {
             errorMsg = "Unknown error";
           }
@@ -267,16 +263,14 @@
         }
         catch (code) {
           let errorMsg;
-          if (code == 400) {
-            errorMsg = "Speedrun.com server error/pagination limit reached";
-          } else if (code > 400) {
-            errorMsg = "Speedrun.com server error";
+          if (code >= 400) {
+            errorMsg = `Speedrun.com server error (${code})`;
           } else {
             errorMsg = "Unknown error";
           }
           disp_error(errorMsg);
           return;
-        }          
+        }        
         var_map = {};
         subcat_map = {};
         for (let variable of varObj.data) {
@@ -359,7 +353,7 @@
         selected = document.getElementById("category-select").value;
         let title;
         if (selected == "All Categories") {
-          working_queue = queue
+          working_queue = queue;
           title = `<b>${gameName}\n${working_queue.length} run${(working_queue.length != 1) ? "s" : ""}`;
         } else {
           working_queue = []; 
