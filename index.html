@@ -260,7 +260,7 @@
           disp_error(errorMsg);
           return;
         }
-        queue.sort((a, b) => ((a.date != b.date) ? ((a.date > b.date) - 0.5) : 0));
+        queue.sort((a, b) => ((a.submitted != b.submitted) ? ((a.submitted > b.submitted) - 0.5) : 0));
         working_queue = queue;
         try {
           var varObj = json_from_src(`games/${gameID}/variables`, xhr);
