@@ -29,7 +29,7 @@
         color: #af69ef
       }
       .external:after {
-        content: url(https://upload.wikimedia.org/wikipedia/commons/6/64/Icon_External_Link.png);
+        content: url(https://upload.wikimedia.org/wikipedia/commons/4/44/Icon_External_Link.svg);
         margin: 0 0 0 3px
       }
       button.link {
@@ -77,30 +77,57 @@
       }
 
       const HEADER = "https://www.speedrun.com/api/v1/";
-
-      function json_from_url(url, xhr) {
-        xhr.open("GET", url, false);
-        xhr.send();
-        if (xhr.status >= 400)
-          throw xhr.status;
-        return JSON.parse(xhr.responseText);
+      
+      async function json_from_url_await(url) {
+        let resp = await fetch(url);
+        if (resp.ok)
+          return resp.json();
+        else
+          throw resp.status;
       }
 
-      function json_from_src(short_url, xhr) {
-        return json_from_url(HEADER + short_url, xhr);
-      }
+      async function json_from_src_await(short_url) {
+        return await json_from_url_await(HEADER + short_url);
+      }                
 
-      function continual_data(short_url, xhr) {
+      async function continual_data_await_fast_reverse(short_url, limit) {
+        if (limit % 200)
+          throw "Limit must be a multiple of 200";
+        if (limit > 10000)
+          throw "Limit must be no greater than 10000";
+        
         let hold = [];
-        let resp = json_from_src(short_url + (short_url.includes("?") ? "&max=200" : "?max=200"), xhr);
-        while (true) {
-          hold.push(...resp.data);
-          if (!("pagination" in resp) || (resp.pagination.size < 200))
-            break;
-          let linkMap = resp.pagination.links.reduce((newObj, x) => ({...newObj, [x.rel]: x.uri}), {});
-          resp = json_from_url(linkMap.next.replace("http://", "https://"), xhr);
+        let holdD = {};
+        let asc_hi;
+        let desc_lo;
+
+        async function next_await_fast_reverse(start, reverse) {
+          let promises = [];
+          let dir = reverse ? "desc" : "asc";
+          for (let i = 0; i < limit; i += 200) {
+            promises.push(json_from_src_await(short_url + (short_url.includes("?") ? "&" : "?") + `orderby=submitted&direction=${await dir}&max=200` +
+                                              `&offset=${start * limit + i}`)
+                                        .then(function(json) {hold.push(...json.data);
+                                                              if (i == limit - 200 && json.data.length > 0) {
+                                                                if (reverse) {desc_lo = json.data[json.data.length - 1].submitted;}
+                                                                else {asc_hi = json.data[json.data.length - 1].submitted;}}}));
+          }
+          await Promise.all(promises);
+          if ((asc_hi === undefined || desc_lo === undefined || asc_hi <= desc_lo) && hold.length == (start + 1) * limit + 10000 * reverse) {
+            if (hold.length == 10000 && !reverse)
+              await next_await_fast_reverse(0, true);
+            else if (hold.length == 20000)
+              console.warn(`Could not fetch all runs for ${short_url}`);
+            else
+              await next_await_fast_reverse(start + 1, reverse);
+          }
         }
-        return hold;
+
+        return await next_await_fast_reverse(0, false).then(function() {
+                                                              for (let run of hold)
+                                                                if (!(run.id in holdD)) {holdD[run.id] = run;}
+                                                              return Object.values(holdD);
+                                                            });
       }
 
       function default_flag(run) {
@@ -208,11 +235,23 @@
           else
             return `<div title="Version is not between 1.${reqRange[0]} and 1.${reqRange[1]}"><mark class="${mode}">F</mark></div>`;
         }
-      } 
+      }
+      
+      function subsurf_flag(run) {
+        if (run.videos === null)
+          return `<div title="No video"><mark class="${mode}">F</mark></div>`;
+        if ("text" in run.videos && run.videos.text.includes("tiktok"))
+          return `<div title="Tiktok video"><mark class="${mode}">F</mark></div>`;
+        if ("links" in run.videos && run.videos.links.some(x => x.uri.includes("tiktok")))
+          return `<div title="Tiktok video"><mark class="${mode}">F</mark></div>`;
+        return "";
+      }
+          
 
       const fMap = {"o1y9j9v6": [celeste_flag, "time is not a multiple of 0.017"],
                     "j1npme6p": [mc_mcce_flag, "version is invalid in some way"],
-                    "nd2e9erd": [mc_mcce_flag, "version is invalid in some way"]};
+                    "nd2e9erd": [mc_mcce_flag, "version is invalid in some way"],
+                    "y65797de": [subsurf_flag, "blank or Tiktok video"]};
 
       function get_flag() {
         if (gameID in fMap)
@@ -227,11 +266,10 @@
         document.getElementById("queue-table").innerHTML = "";
       }
 
-      function get_queue() {
-        let xhr = new XMLHttpRequest();
+      async function get_queue() {
         let abbr = document.getElementById("abbreviation").value;
         try {
-          var gameObj = json_from_src(`games/${abbr}`, xhr);
+          var gameObj = await json_from_src_await(`games/${abbr}`);
         }
         catch (code) {
           let errorMsg;
@@ -248,7 +286,7 @@
         gameID = gameObj.data.id;
         gameName = gameObj.data.names.international;
         try {
-          queue = continual_data(`runs?game=${gameID}&status=new&embed=category,level,players&orderby=submitted`, xhr);
+          queue = await continual_data_await_fast_reverse(`runs?game=${await gameID}&status=new&embed=category,level,players&orderby=submitted`, 5000);
         }
         catch (code) {
           let errorMsg;
@@ -263,7 +301,7 @@
         queue.sort((a, b) => ((a.date != b.date) ? ((a.date > b.date) - 0.5) : 0));
         working_queue = queue;
         try {
-          var varObj = json_from_src(`games/${gameID}/variables`, xhr);
+          var varObj = await json_from_src_await(`games/${gameID}/variables`);
         }
         catch (code) {
           let errorMsg;
@@ -274,7 +312,7 @@
           }
           disp_error(errorMsg);
           return;
-        }        
+        }
         var_map = {};
         subcat_map = {};
         for (let variable of varObj.data) {
@@ -318,10 +356,7 @@
       }
 
       function players(run) {
-        let hold = [];
-        for (let player of run.players.data)
-          hold.push((player.rel == "user") ? player.names.international : player.name);
-        return hold;
+        return run.players.data.map(get_display_name).join("<br>");
       }
 
       function str_time(time) {
@@ -380,7 +415,7 @@
         let output = "";
         for (let run of working_queue) {
           output += `<tr><td style="text-align:center">${full_category(run)}</td><td></td>` +
-                    `<td style="white-space:pre;text-align:center">${players(run).join("\n")}</td><td></td>` +
+                    `<td style="text-align:center">${players(run)}</td><td></td>` +
                     `<td style="text-align:center">${primary_time(run)}</td><td></td>` +
                     `<td style="text-align:center">${run.date}</td><td></td>` +
                     `<td style="text-align:center"><a href="${run.weblink.replace("http://", "https://")}" target="_blank" class="external">Open</a></td>` +
@@ -388,6 +423,112 @@
         }
         document.getElementById("game-title").innerHTML = title;
         document.getElementById("queue-table").innerHTML = output;
+      }
+      
+      const COLOR_MAP = {"#EE2222": "#E44141",  // red
+                         "#E77471": "#C86462",  // coral
+                         "#EF8239": "#D37339",  // orange
+                         "#DAA520": "#B4902E",  // yellow
+                         "#7AB941": "#70A342",  // green
+                         "#009856": "#08AB6E",  // mint
+                         "#249BCE": "#389BC6",  // azure
+                         "#4646CE": "#6666EE",  // blue
+                         "#900090": "#A010A0",  // purple
+                         "#A259C5": "#AE6CCD",  // lavender
+                         "#E762B5": "#C75C9F",  // pink
+                         "#EF2081": "#EE2D88",  // fuchsia
+                         "#FFB3F3": "#AF7BA7",  // light pink
+                         "#808080": "#999999",  // silver
+                         "#000000": "#999999"}; // white
+
+      function hex(num) {
+        return Math.round(Math.max(0, Math.min(255, num))).toString(16);
+      }
+
+      function splitRGB(rgb) {
+        return rgb.match(/.{1,2}/g).map(x => parseInt(x, 16));
+      }
+
+      function joinRGB(rgb) {
+        return rgb.map(x => hex(x).padStart(2, "0")).join("");
+      }
+
+      function gradient(start, end, len) {
+        let colors = [];
+        let splitStart = splitRGB(start);
+        let splitEnd = splitRGB(end);
+        for (let i = 0; i < len; i++) {
+          let weight = (len == 1) ? 0 : (i / (len - 1));
+          colors.push(joinRGB(splitStart.map((e, i) => (e * (1 - weight) + splitEnd[i] * weight))));
+        }
+        return colors;
+      }
+      
+      function escape(str) {
+        if (str === null)
+          return "null";
+        else if (str === undefined)
+          return "undefined";
+        else
+          return str.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+      }
+      
+      function get_display_name(user, flag=true, link=false) {
+        if (!("rel" in user) || user.rel == "user") {
+          let name_style = user["name-style"];
+          let user_name = user.names.international;
+          let user_loc = user.location;
+          if (name_style.style == "gradient") {
+            let startL = name_style["color-from"].light;
+            let endL = name_style["color-to"].light;
+            let startD = name_style["color-from"].dark;
+            let endD = name_style["color-to"].dark;
+            let name_gradientL = gradient((startL in COLOR_MAP ? COLOR_MAP[startL] : startL).slice(1),
+                                          (endL in COLOR_MAP ? COLOR_MAP[endL] : endL).slice(1), user_name.length);
+            let name_gradientD = gradient(startD.slice(1), endD.slice(1), user_name.length);
+            var display_name = `<span class="xlight ${mode}">` +
+                                 name_gradientL.map((c, i) => `<span style="color:#${c}">${escape(user_name[i])}</span>`).join("") +
+                               `</span>` +
+                               `<span class="xdark ${mode}">` +
+                                 name_gradientD.map((c, i) => `<span style="color:#${c}">${escape(user_name[i])}</span>`).join("") +
+                               `</span>`;
+          } else if (name_style.style == "solid") {
+            let colorL = name_style.color.light;
+            let colorD = name_style.color.dark;
+            var display_name = `<span style="color:${colorL in COLOR_MAP ? COLOR_MAP[colorL] : colorL}" class="xlight ${mode}">` +
+                                 escape(user_name) +
+                               `</span>` +
+                               `<span style="color:${colorD}" class="xdark ${mode}">` +
+                                 escape(user_name) +
+                               `</span>`;
+          } else {
+            var display_name = `<span>${escape(user_name)}</span>`;
+          }
+          display_name = `<b>${display_name}</b>`;
+          if ((user_loc !== null) && ("country" in user_loc)) {
+            let cc = user_loc.country.code;
+            display_name = `<span style="white-space:nowrap">` +
+                             `<img src="https://www.speedrun.com/images/flags/${cc}.png" height="12" alt="[${cc}]"> ` +
+                             display_name +
+                           `</span>`;
+          }
+          return display_name;
+        } else if (user.rel == "guest") {
+          let split_name = user.name.match(/^\[(.*)\](.*)/);
+          if (split_name) {
+            let name = escape(split_name[2]);
+            return `<span style="white-space:nowrap">` +
+                     `<img src="https://www.speedrun.com/images/flags/${split_name[1]}.png" height="12" onerror="this.outerHTML = this.alt" ` +
+                      `alt="[${split_name[1]}]"> ` +
+                   `${name}</span>`;
+          } else {
+            return escape(user.name);
+          }
+        } else if ("name" in user) {
+          return escape(user.name);
+        } else {
+          return "?";
+        }
       }
     </script>
   </head>
