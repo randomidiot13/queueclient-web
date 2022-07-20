@@ -19,7 +19,7 @@ One of the main advantages of the client is the ability to filter the queue to o
 Note: For games that have a category called `All Categories` (which at least 20 games do have) that does not have any subcategories, attempting to filter by that category will almost certainly fail. Either the entire queue will be displayed, or the client will break altogether.
 
 ## Flagging
-Several games have built-in functionality to flag runs that meet certain criteria. Flagged runs will have a highlighted F to the right of the link, and hovering over the F will display the reason for which the run was flagged. Currently, flagging exists for the following games:
+Several games have built-in functionality to flag runs that meet certain criteria. Flagged runs will have a highlighted letter to the right of the link, and hovering over the letter will display the reason for which the run was flagged. Currently, flagging exists for the following games:
 - Celeste
 - Minecraft: Java Edition
 - Minecraft: Java Edition Category Extensions
