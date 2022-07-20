@@ -8,7 +8,7 @@ Currently, the only functionality the client has is queue-related, but I hope to
 ## speedrun.com API
 All data is fetched through v1 of the [speedrun.com API](https://github.com/speedruncomorg/api), whose content is licensed under [CC-BY-NC 4.0](https://creativecommons.org/licenses/by-nc/4.0/). The API will cache data, so fetching the queue twice in a short amount of time will return the same queue, even if runs were verified, rejected, or submitted in between. The time needed for the cache to clear does not appear to be consistent, but 30 minutes is usually enough time.
 
-The API is also rate-limited, supposedly at 100 requests per minute, but this does not appear to be consistent either. The number of requests needed to fetch the queue for a given game is `ceiling((numberOfRunsInQueue + 1) / 200) + 2`.
+The API is also rate-limited, supposedly at 100 requests per minute, but this does not appear to be consistent either. The number of requests needed to fetch the queue for a given game is `25 * ceiling((numberOfRunsInQueue + 1) / 5000) + 2`. A large number of concurrent requests are made to speed up requests for longer queues.
 
 ## Sorting
 The queue is sorted first by `run.date` (the date the run was done on), then by `run.submitted` (the time the run was submitted). Older runs appear first. Sorting by a different method is not supported.
