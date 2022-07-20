@@ -237,21 +237,45 @@
         }
       }
       
-      function subsurf_flag(run) {
+      function player_vid_hash(run) {
+        let rplayers = run.players.data.map(p => (p.rel == "user") ? p.names.international : p.name);
+        rplayers.sort();
+        let h = "$" + rplayers.join("|") + "$";
         if (run.videos === null)
-          return `<div title="No video"><mark class="${mode}">F</mark></div>`;
+          h += "NULL$";
+        else {
+          if ("text" in run.videos)
+            h += run.videos.text + "$";
+          if ("links" in run.videos) {
+            let rvideos = run.videos.links.map(x => x.uri);
+            rvideos.sort();
+            h += rvideos.join("|") + "$";
+          }
+        }
+        return h;
+      }   
+      
+      function subsurf_flag(run) {
+        if (typeof subsurf_dup_map === "undefined")
+          subsurf_dup_map = {};
+        let h = player_vid_hash(run);
+        if (h in subsurf_dup_map)
+          return `<div title="Duplicate of ${subsurf_dup_map[h]}"><mark class="${mode}">D</mark></div>`;
+        else
+          subsurf_dup_map[h] = run.id;
+        if (run.videos === null)
+          return `<div title="No video"><mark class="${mode}">N</mark></div>`;
         if ("text" in run.videos && run.videos.text.includes("tiktok"))
-          return `<div title="Tiktok video"><mark class="${mode}">F</mark></div>`;
+          return `<div title="Tiktok video"><mark class="${mode}">T</mark></div>`;
         if ("links" in run.videos && run.videos.links.some(x => x.uri.includes("tiktok")))
-          return `<div title="Tiktok video"><mark class="${mode}">F</mark></div>`;
+          return `<div title="Tiktok video"><mark class="${mode}">T</mark></div>`;
         return "";
       }
-          
 
       const fMap = {"o1y9j9v6": [celeste_flag, "time is not a multiple of 0.017"],
                     "j1npme6p": [mc_mcce_flag, "version is invalid in some way"],
                     "nd2e9erd": [mc_mcce_flag, "version is invalid in some way"],
-                    "y65797de": [subsurf_flag, "blank or Tiktok video"]};
+                    "y65797de": [subsurf_flag, "duplicate (D), no video (N), Tiktok video (T)"]};
 
       function get_flag() {
         if (gameID in fMap)
