@@ -23,5 +23,6 @@ Several games have built-in functionality to flag runs that meet certain criteri
 - Celeste
 - Minecraft: Java Edition
 - Minecraft: Java Edition Category Extensions
+- Subway Surfers
 
 Flagging for additional games may be added upon request.
