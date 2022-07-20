@@ -256,8 +256,6 @@
       }   
       
       function subsurf_flag(run) {
-        if (typeof subsurf_dup_map === "undefined")
-          subsurf_dup_map = {};
         let h = player_vid_hash(run);
         if (h in subsurf_dup_map)
           return `<div title="Duplicate of ${subsurf_dup_map[h]}"><mark class="${mode}">D</mark></div>`;
@@ -278,6 +276,8 @@
                     "y65797de": [subsurf_flag, "duplicate (D), no video (N), Tiktok video (T)"]};
 
       function get_flag() {
+        if (gameID == "y65797de")
+          subsurf_dup_map = {};
         if (gameID in fMap)
           return fMap[gameID][0];
         else
