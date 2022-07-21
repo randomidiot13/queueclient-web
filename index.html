@@ -117,7 +117,7 @@
             if (hold.length == 10000 && !reverse)
               await next_await_fast_reverse(0, true);
             else if (hold.length == 20000)
-              console.warn(`Could not fetch all runs for ${short_url}`);
+              throw -1;
             else
               await next_await_fast_reverse(start + 1, reverse);
           }
@@ -298,7 +298,7 @@
         catch (code) {
           let errorMsg;
           if (code == 404) {
-            errorMsg = `Invalid game: ${abbr.replaceAll("<", "&lt;").replaceAll(">", "&gt;")}`;
+            errorMsg = `Invalid game: ${escape(abbr)}`;
           } else if (code >= 400) {
             errorMsg = `Speedrun.com server error (${code})`;
           } else {
@@ -310,18 +310,21 @@
         gameID = gameObj.data.id;
         gameName = gameObj.data.names.international;
         try {
-          queue = await continual_data_await_fast_reverse(`runs?game=${await gameID}&status=new&embed=category,level,players&orderby=submitted`, 5000);
+          queue = await continual_data_await_fast_reverse(`runs?game=${await gameID}&status=new&embed=category,level,players`, 5000);
         }
         catch (code) {
           let errorMsg;
           if (code >= 400) {
             errorMsg = `Speedrun.com server error (${code})`;
+          } else if (code == -1) {
+            errorMsg = `Queue for ${gameName} has more than 20000 runs. Could not fetch the entire queue.`;
           } else {
             errorMsg = "Unknown error";
           }
           disp_error(errorMsg);
           return;
         }
+        queue.sort((a, b) => ((a.submitted != b.submitted) ? ((a.submitted > b.submitted) - 0.5) : 0));
         queue.sort((a, b) => ((a.date != b.date) ? ((a.date > b.date) - 0.5) : 0));
         working_queue = queue;
         try {
