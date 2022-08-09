@@ -105,12 +105,13 @@
           let promises = [];
           let dir = reverse ? "desc" : "asc";
           for (let i = 0; i < limit; i += 200) {
-            promises.push(json_from_src_await(short_url + (short_url.includes("?") ? "&" : "?") + `orderby=submitted&direction=${await dir}&max=200` +
-                                              `&offset=${start * limit + i}`)
-                                        .then(function(json) {hold.push(...json.data);
-                                                              if (i == limit - 200 && json.data.length > 0) {
-                                                                if (reverse) {desc_lo = json.data[json.data.length - 1].submitted;}
-                                                                else {asc_hi = json.data[json.data.length - 1].submitted;}}}));
+            promises.push(json_from_src_await(
+              short_url + (short_url.includes("?") ? "&" : "?") + `orderby=submitted&direction=${await dir}&max=200` +
+              `&offset=${start * limit + i}`
+            ).then(function(json) {hold.push(...json.data.map(free));
+                    if (i == limit - 200 && json.data.length > 0) {
+                      if (reverse) {desc_lo = json.data[json.data.length - 1].submitted;}
+                      else {asc_hi = json.data[json.data.length - 1].submitted;}}}));
           }
           await Promise.all(promises);
           if ((asc_hi === undefined || desc_lo === undefined || asc_hi <= desc_lo) && hold.length == (start + 1) * limit + 10000 * reverse) {
@@ -128,6 +129,25 @@
                                                                 if (!(run.id in holdD)) {holdD[run.id] = run;}
                                                               return Object.values(holdD);
                                                             });
+      }
+      
+      const CAT_FREE = ["links", "rules", "weblink"];
+      const PLAYER_FREE = ["assets", "hitbox", "links", "pronouns", "signup", "speedrunslive", "supporterAnimation", "twitch", "twitter",
+                           "weblink", "youtube"];
+      
+      function free(run) {
+        for (let prop of CAT_FREE)
+          delete run.category.data[prop];
+        if (run.level.data.length !== 0) {
+          for (let prop of CAT_FREE)
+            delete run.level.data[prop];
+        }
+        for (let player of run.players.data) {
+          for (let prop of PLAYER_FREE)
+            delete player[prop];
+        }
+        delete run.comment;
+        return run;
       }
 
       function default_flag(run) {
