@@ -131,9 +131,10 @@
                                                             });
       }
       
-      const CAT_FREE = ["links", "rules", "weblink"];
+      const CAT_FREE = ["links", "miscellaneous", "players", "rules", "type", "weblink"];
       const PLAYER_FREE = ["assets", "hitbox", "links", "pronouns", "signup", "speedrunslive", "supporterAnimation", "twitch", "twitter",
                            "weblink", "youtube"];
+      const RUN_FREE = ["comment", "links", "splits", "status", "system"];
       
       function free(run) {
         for (let prop of CAT_FREE)
@@ -146,7 +147,8 @@
           for (let prop of PLAYER_FREE)
             delete player[prop];
         }
-        delete run.comment;
+        for (let prop of RUN_FREE)
+          delete run[prop];
         return run;
       }
 
@@ -273,7 +275,7 @@
           }
         }
         return h;
-      }   
+      }
       
       function subsurf_flag(run) {
         let h = player_vid_hash(run);
@@ -439,20 +441,22 @@
         selected = document.getElementById("category-select").value;
         let title;
         if (selected == "All Categories") {
-          working_queue = queue;
+          working_queue = [...Array(queue.length).keys()];
           title = `<b>${gameName}\n${working_queue.length} run${(working_queue.length != 1) ? "s" : ""}`;
         } else {
-          working_queue = []; 
+          working_queue = [];
+          let i = 0;
           for (let run of queue) {
             if (full_category(run) == selected)
-              working_queue.push(run);
+              working_queue.push(i);
+            i++;
           }
           title = `<b>${gameName}\n${selected}\n${working_queue.length} run${(working_queue.length != 1) ? "s" : ""}`;
         }
         if (working_queue.length > 0) {
           let total = 0;
-          for (let run of working_queue)
-            total += run.times.primary_t;
+          for (let i of working_queue)
+            total += queue[i].times.primary_t;
           title += `\nTotal time ${str_time(total)}, average ${str_time(total / working_queue.length)}`;
         }
         title += "</b>";
@@ -460,12 +464,13 @@
           title += `\nThis game supports flagging. Runs will be flagged if: ${fMap[gameID][1]}`;
         let flag_func = get_flag();
         let output = "";
-        for (let run of working_queue) {
+        for (let i of working_queue) {
+          let run = queue[i];
           output += `<tr><td style="text-align:center">${full_category(run)}</td><td></td>` +
                     `<td style="text-align:center">${players(run)}</td><td></td>` +
                     `<td style="text-align:center">${primary_time(run)}</td><td></td>` +
                     `<td style="text-align:center">${run.date}</td><td></td>` +
-                    `<td style="text-align:center"><a href="${run.weblink.replace("http://", "https://")}" target="_blank" class="external">Open</a></td>` +
+                    `<td style="text-align:center"><a href="${run.weblink.replace("http://", "https://")}" target="_blank" class="external">Open</a></td><td></td>` +
                     `<td id="flag-${run.id}">${flag_func(run)}</td></tr><tr></tr>`;
         }
         document.getElementById("game-title").innerHTML = title;
