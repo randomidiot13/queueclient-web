@@ -88,7 +88,7 @@
 
       async function json_from_src_await(short_url) {
         return await json_from_url_await(HEADER + short_url);
-      }                
+      }
 
       async function continual_data_await_fast_reverse(short_url, limit) {
         if (limit % 200)
@@ -455,9 +455,15 @@
         }
         if (working_queue.length > 0) {
           let total = 0;
-          for (let i of working_queue)
+          let fastestTime = false;
+
+          for (let i of working_queue) {
             total += queue[i].times.primary_t;
-          title += `\nTotal time ${str_time(total)}, average ${str_time(total / working_queue.length)}`;
+            
+            if (!fastestTime || queue[i].times.primary_t < fastestTime)
+              fastestTime = queue[i].times.primary_t
+          }
+          title += `\nTotal time ${str_time(total)}, average ${str_time(total / working_queue.length)}, fastest ${str_time(fastestTime)}`;
         }
         title += "</b>";
         if (gameID in fMap)
